@@ -352,10 +352,10 @@ async def chat_stream(websocket: WebSocket):
     # Any other exception
     except Exception as e:
         print(f"Error in Websocket connection: {e}")
-        try:
-            await websocket.send_text(f"Error: {str(e)}")
-            await websocket.send_text('<<END>>')
-        except:
-            pass # If we can't send the error, the connection is likely already closed
+        # try:
+        await websocket.send_text(f"Error: {str(e)}")
+        await websocket.send_text('<<END>>')
+        # except:
+        #     pass # If we can't send the error, the connection is likely already closed
 
 
