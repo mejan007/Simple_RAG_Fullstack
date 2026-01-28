@@ -54,49 +54,41 @@ function App() {
     e.stopPropagation();
     setIsDragActive(false);
 
-     // Get dropped files
+    // Get dropped files
     const files = e.dataTransfer.files;
     if (files.length === 0) return;
-    
+
     // Process only the first file
     const file = files[0];
-    
+
     // Check if it's a text file or a file we can read as text
-    if (!file.type.includes('text') && 
-        !file.type.includes('application/json') && 
-        !file.type.includes('application/pdf') && 
-        !file.name.endsWith('.txt') && 
-        !file.name.endsWith('.md')) {
+    if (!file.type.includes('text') &&
+      !file.type.includes('application/json') &&
+      !file.type.includes('application/pdf') &&
+      !file.name.endsWith('.txt') &&
+      !file.name.endsWith('.md')) {
       setUploadStatus('Please upload a text file only.');
       return;
     }
-    
+
     setIsUploading(true);
-    setUploadStatus('Reading file...');
-    
     try {
-      // Read the file as text first
-      const fileContent = await readFileAsText(file);
-      
-      // Convert to base64
-      const base64Content = btoa(fileContent);
-      
+      setUploadStatus('Uploading file...');
+
+      const formData = new FormData();
+      formData.append('file', file);
+
       // Call the upload API
-      const response = await fetch('http://localhost:8000/upload', {
+      const response = await fetch('/documents/upload', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          file_data: base64Content
-        })
+        body: formData
       });
-      
+
       const data = await response.json();
-      
+
       if (response.ok) {
-        setUploadStatus(`Successfully uploaded document with ${data.uploaded_ids.length} chunks.`);
-        setUploadedDocIds(data.uploaded_ids);
+        setUploadStatus(`Successfully uploaded document with ${data.document_ids.length} chunks.`);
+        setUploadedDocIds(data.document_ids);
       } else {
         setUploadStatus(`Error: ${data.detail || 'Unknown error'}`);
       }
@@ -116,63 +108,44 @@ function App() {
     }
   }, []);
 
-  // Helper function to read file as text
-  const readFileAsText = (file: File): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => {
-        resolve(reader.result as string);
-      };
-      reader.onerror = () => {
-        reject(new Error('Failed to read file'));
-      };
-      reader.readAsText(file);
-    });
-  };
+  // No helper function needed anymore as we use FormData directly
+  // with the File object.
 
   // Manual file input handler
   const handleFileInputChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
-    
+
     const file = files[0];
-    
+
     // Check if it's a text file
-    if (!file.type.includes('text') && 
-        !file.type.includes('application/json') && 
-        !file.type.includes('application/pdf') && 
-        !file.name.endsWith('.txt') && 
-        !file.name.endsWith('.md')) {
+    if (!file.type.includes('text') &&
+      !file.type.includes('application/json') &&
+      !file.type.includes('application/pdf') &&
+      !file.name.endsWith('.txt') &&
+      !file.name.endsWith('.md')) {
       setUploadStatus('Please upload a text file only.');
       return;
     }
-    
+
     setIsUploading(true);
-    setUploadStatus('Reading file...');
-    
     try {
-      // Read the file as text
-      const fileContent = await readFileAsText(file);
-      
-      // Convert to base64
-      const base64Content = btoa(fileContent);
-      
+      setUploadStatus('Uploading file...');
+
+      const formData = new FormData();
+      formData.append('file', file);
+
       // Call the upload API
-      const response = await fetch('http://localhost:8000/upload', {
+      const response = await fetch('/documents/upload', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          file_data: base64Content
-        })
+        body: formData
       });
-      
+
       const data = await response.json();
-      
+
       if (response.ok) {
-        setUploadStatus(`Successfully uploaded document with ${data.uploaded_ids.length} chunks.`);
-        setUploadedDocIds(data.uploaded_ids);
+        setUploadStatus(`Successfully uploaded document with ${data.document_ids.length} chunks.`);
+        setUploadedDocIds(data.document_ids);
       } else {
         setUploadStatus(`Error: ${data.detail || 'Unknown error'}`);
       }
@@ -191,7 +164,7 @@ function App() {
       setIsUploading(false);
     }
   };
-    
+
   // The first handler will track and update changes in the query <textarea>
 
   const handleQueryChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -207,7 +180,7 @@ function App() {
 
     // Check if query is empty, if it is, return early and don't create a WebSocket connection
 
-    if(!query.trim()) return;
+    if (!query.trim()) return;
 
     /*
     When the connection opens, we set isStreaming to true, preventing the user from submitting multiple queries simultaneously. 
@@ -215,7 +188,8 @@ function App() {
     
     */
 
-    const websocket = new WebSocket('ws://localhost:8000/ws/stream');
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const websocket = new WebSocket(`${protocol}//${window.location.host}/chat/ws/stream`);
     setIsStreaming(true);
     setResponse('');
 
@@ -223,27 +197,27 @@ function App() {
     // To manage the WebSocket connection effectively, we create the four key event handlers:
 
     //Websocker On Open Action -> Triggered when WebScoket connection is successfully established
-     websocket.onopen = () => {
+    websocket.onopen = () => {
 
-    /*
-    This is the moment when the client is ready to communicate with the backend. 
-    
-    At this point, the backend is waiting for an initial JSON payload containing the user's query. 
-    This query will be used to execute the RAG pipeline and return a response.
-    */
-   console.log("WebSocker connection opened.");
-    // Send query to the server
-    websocket.send(JSON.stringify({query}));
+      /*
+      This is the moment when the client is ready to communicate with the backend. 
+      
+      At this point, the backend is waiting for an initial JSON payload containing the user's query. 
+      This query will be used to execute the RAG pipeline and return a response.
+      */
+      console.log("WebSocker connection opened.");
+      // Send query to the server
+      websocket.send(JSON.stringify({ query }));
     };
 
     // ON MESSAGE HANDLER -> Called whenever a new message (chunk of response) is received from the server.
     websocket.onmessage = (event) => {
-      
+
       const data = event.data;
       console.log('data: ', data);
 
       // Check for the termination flag
-      if (data == '<<END>>'){
+      if (data == '<<END>>') {
         websocket.close();
         setIsStreaming(false);
         return;
@@ -279,9 +253,9 @@ function App() {
     <div className='main-div'>
       <div className='header-container'>
         <h1>Full Stack RAG w/ Streaming</h1>
-        
+
         {/* File Upload Section */}
-        <div 
+        <div
           className={`drop-zone ${isDragActive ? 'active' : ''} ${isUploading ? 'uploading' : ''}`}
           onDragEnter={handleDragEnter}
           onDragLeave={handleDragLeave}
@@ -295,10 +269,10 @@ function App() {
               <>
                 <p>Drag & drop your text file here</p>
                 <p>or</p>
-                <input 
-                  type="file" 
-                  id="file-input" 
-                  onChange={handleFileInputChange} 
+                <input
+                  type="file"
+                  id="file-input"
+                  onChange={handleFileInputChange}
                   className="file-input"
                   accept=".txt,.md,.json,.pdf,text/*"
                 />
@@ -309,7 +283,7 @@ function App() {
             )}
           </div>
         </div>
-        
+
         {/* Upload Status */}
         {uploadStatus && (
           <div className={`upload-status ${uploadStatus.includes('Error') ? 'error' : 'success'}`}>
@@ -344,7 +318,7 @@ function App() {
         ) : (
           <div className="response-placeholder">Your response will appear here after submitting a query.</div>
         )
-      }
+        }
       </div>
     </div>
   )

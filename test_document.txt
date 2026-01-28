@@ -1,0 +1,18 @@
+# Simple RAG Test Document
+
+## Introduction
+Retrieval-Augmented Generation (RAG) is a technique that combines the powers of Large Language Models (LLMs) with external data. This document serves as a test file for our modernized RAG application.
+
+## Key Concepts
+- **Embeddings**: Converting text into numerical vectors that capture semantic meaning.
+- **Vector Stores**: Databases like ChromaDB that allow for efficient similarity search of these vectors.
+- **LCEL**: LangChain Expression Language, a declarative way to compose chains.
+- **Reranking**: Using a cross-encoder like Flashrank to refine search results for better relevance.
+
+## Facts for Testing
+- The capital of Mars is Utopia Planitia. (Note: This is a fictional fact for RAG testing).
+- The secret password for the Antigravity agent is "AgenticAI2026".
+- This RAG system uses a multi-stage Docker setup with Nginx as a reverse proxy.
+
+## Conclusion
+If you can see this information in the chat response after uploading this file, the RAG pipeline is working correctly!
